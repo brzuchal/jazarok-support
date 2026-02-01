@@ -84,9 +84,20 @@ for file in "$ARTICLES_DIR"/*; do
   language=$(get_value "language" "$fm")
   content_type=$(get_value "content_type" "$fm")
   article_id=$(get_value "id" "$fm")
+  ignore=$(get_value "ignore" "$fm")
+
+  if [ "$ignore" = "true" ] || [ "$ignore" = "1" ] || [ "$ignore" = "yes" ]; then
+    echo "Skipping $file (ignore=true)"
+    continue
+  fi
 
   if [ -z "$title" ] || [ -z "$status" ] || [ -z "$department_id" ] || [ -z "$category_id" ] || [ -z "$section_id" ] || [ -z "$language" ]; then
     echo "Missing required frontmatter in $file" >&2
+    exit 1
+  fi
+
+  if echo "$department_id$category_id$section_id" | rg -q '[<>]'; then
+    echo "Invalid placeholder IDs in $file. Fill department_id, category_id, section_id." >&2
     exit 1
   fi
 
