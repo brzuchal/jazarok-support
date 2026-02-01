@@ -8,6 +8,45 @@ ARTICLES_DIR="${ARTICLES_DIR:-articles}"
 
 header_auth=("Authorization: Zoho-oauthtoken ${TOKEN}")
 header_org=("orgId: ${ORG_ID}")
+header_accept=("Accept: application/json")
+
+request_json() {
+  local method="$1"
+  local url="$2"
+  local data="${3:-}"
+  local response
+  local body
+  local status
+
+  if [ -n "$data" ]; then
+    response=$(curl -sS -X "$method" "$url" \
+      -H "${header_auth[@]}" -H "${header_org[@]}" -H "${header_accept[@]}" \
+      -H "Content-Type: application/json" \
+      -d "$data" \
+      -w "HTTPSTATUS:%{http_code}")
+  else
+    response=$(curl -sS -X "$method" "$url" \
+      -H "${header_auth[@]}" -H "${header_org[@]}" -H "${header_accept[@]}" \
+      -w "HTTPSTATUS:%{http_code}")
+  fi
+
+  body="${response%HTTPSTATUS:*}"
+  status="${response##*HTTPSTATUS:}"
+
+  if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+    echo "Zoho API error ($method $url): HTTP $status" >&2
+    echo "$body" >&2
+    exit 1
+  fi
+
+  if ! echo "$body" | jq -e '.' >/dev/null 2>&1; then
+    echo "Zoho API returned non-JSON response ($method $url):" >&2
+    echo "$body" >&2
+    exit 1
+  fi
+
+  echo "$body"
+}
 
 get_frontmatter() {
   awk 'NR==1{if($0!="---"){exit 1}} NR>1{if($0=="---"){exit} print}' "$1"
@@ -71,29 +110,18 @@ for file in "$ARTICLES_DIR"/*; do
 
   if [ -n "$article_id" ]; then
     echo "Updating article $article_id ($title)"
-    curl -sS -X PUT "${API_BASE}/articles/${article_id}" \
-      -H "${header_auth[@]}" -H "${header_org[@]}" \
-      -H "Content-Type: application/json" \
-      -d "$payload" > /dev/null
+    request_json "PUT" "${API_BASE}/articles/${article_id}" "$payload" > /dev/null
     continue
   fi
 
-  search=$(curl -sS -X GET "${API_BASE}/articles/search?searchStr=$(printf '%s' "$title" | jq -sRr @uri)&departmentId=${department_id}" \
-    -H "${header_auth[@]}" -H "${header_org[@]}" \
-    -H "Content-Type: application/json")
+  search=$(request_json "GET" "${API_BASE}/articles/search?searchStr=$(printf '%s' "$title" | jq -sRr @uri)&departmentId=${department_id}")
   existing_id=$(echo "$search" | jq -r '.data[0].id // empty')
 
   if [ -n "$existing_id" ]; then
     echo "Updating article $existing_id ($title)"
-    curl -sS -X PUT "${API_BASE}/articles/${existing_id}" \
-      -H "${header_auth[@]}" -H "${header_org[@]}" \
-      -H "Content-Type: application/json" \
-      -d "$payload" > /dev/null
+    request_json "PUT" "${API_BASE}/articles/${existing_id}" "$payload" > /dev/null
   else
     echo "Creating article ($title)"
-    curl -sS -X POST "${API_BASE}/articles" \
-      -H "${header_auth[@]}" -H "${header_org[@]}" \
-      -H "Content-Type: application/json" \
-      -d "$payload" > /dev/null
+    request_json "POST" "${API_BASE}/articles" "$payload" > /dev/null
   fi
  done

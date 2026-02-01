@@ -46,7 +46,7 @@ jobs:
           echo "access_token=$access" >> "$GITHUB_OUTPUT"
 
       - name: Sync articles
-        run: |
-          ZOHO_ACCESS_TOKEN="${{ steps.token.outputs.access_token }}" \
-          ZOHO_ORG_ID="${{ env.ZOHO_ORG_ID }}" \
-          ./scripts/sync-articles.sh
+        env:
+          ZOHO_ACCESS_TOKEN: ${{ steps.token.outputs.access_token }}
+          ZOHO_ORG_ID: ${{ env.ZOHO_ORG_ID }}
+        run: ./scripts/sync-articles.sh
