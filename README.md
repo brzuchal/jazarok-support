@@ -21,22 +21,31 @@ Articles live in `articles/` and use simple frontmatter:
 ```text
 ---
 title: Sample Article
-status: Published
-department_id: "<ZOHO_DEPARTMENT_ID>"
-category_id: "<ZOHO_CATEGORY_ID>"
-section_id: "<ZOHO_SECTION_ID>"
+status: Draft
+department_id: "<DEPARTMENT_ID>"
+category_id: "<CATEGORY_ID>"
+root_category_id: "<ROOT_CATEGORY_ID>"
 language: pl
 content_type: html
+ignore: true
 ---
 <p>HTML content here.</p>
 ```
 
 Notes:
 - Use HTML content (no markdown conversion is done).
+- Use `ignore: true` to skip a draft file.
 - If you already know an article ID, add `id: "<ARTICLE_ID>"` to update it directly.
 
+## Known IDs (current)
+- department Pomoc: `226590000000007061`
+- department RODO i Prywatnosc: `226590000000361029`
+- department Reklamacje: `226590000000372029`
+- categoryId: `226590000000356054`
+- rootCategoryId: `226590000000356035`
+
 ## Scripts
-- `scripts/zoho-desk-info.sh` lists departments, categories and sections.
+- `scripts/zoho-desk-info.sh` lists departments.
 - `scripts/sync-articles.sh` creates/updates articles from `articles/`.
 
 ## Workflow

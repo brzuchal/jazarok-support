@@ -80,7 +80,7 @@ for file in "$ARTICLES_DIR"/*; do
   status=$(get_value "status" "$fm")
   department_id=$(get_value "department_id" "$fm")
   category_id=$(get_value "category_id" "$fm")
-  section_id=$(get_value "section_id" "$fm")
+  root_category_id=$(get_value "root_category_id" "$fm")
   language=$(get_value "language" "$fm")
   content_type=$(get_value "content_type" "$fm")
   article_id=$(get_value "id" "$fm")
@@ -91,13 +91,13 @@ for file in "$ARTICLES_DIR"/*; do
     continue
   fi
 
-  if [ -z "$title" ] || [ -z "$status" ] || [ -z "$department_id" ] || [ -z "$category_id" ] || [ -z "$section_id" ] || [ -z "$language" ]; then
+  if [ -z "$title" ] || [ -z "$status" ] || [ -z "$department_id" ] || [ -z "$category_id" ] || [ -z "$root_category_id" ] || [ -z "$language" ]; then
     echo "Missing required frontmatter in $file" >&2
     exit 1
   fi
 
-  if echo "$department_id$category_id$section_id" | rg -q '[<>]'; then
-    echo "Invalid placeholder IDs in $file. Fill department_id, category_id, section_id." >&2
+  if echo "$department_id$category_id$root_category_id" | rg -q '[<>]'; then
+    echo "Invalid placeholder IDs in $file. Fill department_id, category_id, root_category_id." >&2
     exit 1
   fi
 
@@ -112,11 +112,11 @@ for file in "$ARTICLES_DIR"/*; do
     --arg status "$status" \
     --arg dept "$department_id" \
     --arg category "$category_id" \
-    --arg section "$section_id" \
+    --arg root_category "$root_category_id" \
     --arg language "$language" \
     --arg content "$content" \
     --arg content_type "$content_type" \
-    '{title: $title, status: $status, departmentId: $dept, categoryId: $category, sectionId: $section, language: $language, content: $content, contentType: $content_type}'
+    '{title: $title, status: $status, departmentId: $dept, categoryId: $category, rootCategoryId: $root_category, language: $language, content: $content, contentType: $content_type}'
   )
 
   if [ -n "$article_id" ]; then
