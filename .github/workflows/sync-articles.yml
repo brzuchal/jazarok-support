@@ -1,0 +1,52 @@
+name: Sync Zoho Desk Articles
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - articles/**
+      - scripts/**
+      - .github/workflows/sync-articles.yml
+  workflow_dispatch:
+
+concurrency:
+  group: zoho-articles-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
+      ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
+      ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
+      ZOHO_ORG_ID: "20111859397"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Resolve access token
+        id: token
+        run: |
+          resp=$(curl -sS -X POST "https://accounts.zoho.eu/oauth/v2/token" \
+            -d "refresh_token=${ZOHO_REFRESH_TOKEN}" \
+            -d "client_id=${ZOHO_CLIENT_ID}" \
+            -d "client_secret=${ZOHO_CLIENT_SECRET}" \
+            -d "grant_type=refresh_token")
+          access=$(echo "$resp" | jq -r '.access_token')
+          if [ -z "$access" ] || [ "$access" = "null" ]; then
+            echo "Failed to fetch access token" >&2
+            echo "$resp" >&2
+            exit 1
+          fi
+          echo "access_token=$access" >> "$GITHUB_OUTPUT"
+
+      - name: Sync articles
+        run: |
+          ZOHO_ACCESS_TOKEN="${{ steps.token.outputs.access_token }}" \
+          ZOHO_ORG_ID="${{ env.ZOHO_ORG_ID }}" \
+          ./scripts/sync-articles.sh
